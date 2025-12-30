@@ -1,0 +1,147 @@
+.modeSwitcher {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.modeTitle {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.modeTitle h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.modeTitle p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.modeOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modeOption {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modeOption:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.modeOption.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+}
+
+.modeIcon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.modeInfo {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.modeInfo h4 {
+  margin: 0 0 0.25rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.modeInfo p {
+  margin: 0;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.activeIndicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  background: #667eea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.modeStatus {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: center;
+}
+
+.currentMode {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.statusLabel {
+  font-weight: 600;
+  color: #333;
+}
+
+.statusValue {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+  .modeOptions {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  
+  .modeOption {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem 1rem;
+  }
+  
+  .modeIcon {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+  
+  .modeInfo {
+    text-align: center;
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "draw-and-guess",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "server": "node server/index.js",
+    "postinstall": "echo 'If you want to use local TFJS model run: npm install @tensorflow/tfjs @tensorflow-models/mobilenet @tensorflow-models/coco-ssd'"
+  },
+  "dependencies": {
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "next": "^16.0.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.1",
+    "@types/react-dom": "^19.1.1",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^16.0.3",
+    "typescript": "^5.9.2"
+  }
+}

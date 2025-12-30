@@ -1,0 +1,26 @@
+{guess && (
+          <div className={styles.result}>
+            <h2 className={styles.resultTitle}>AI的猜测：</h2>
+            <p className={styles.guess}>{guess}</p>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.footer}>
+        <p>提示：使用鼠标或触摸屏在画布上绘制，然后点击"AI猜测"按钮</p>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+

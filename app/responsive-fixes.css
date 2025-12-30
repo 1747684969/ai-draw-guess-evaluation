@@ -1,0 +1,336 @@
+/* 全局响应式变量定义 */
+:root {
+  --sidebar-width: 240px;
+  --gap-size: 1rem;
+  --container-padding: 0.5rem;
+  --border-radius: 15px;
+  --canvas-max-width: 800px;
+  --canvas-max-height: 600px;
+}
+
+/* 流体布局容器 */
+.container {
+  width: 100%;
+  max-width: 100vw;
+  padding: var(--container-padding);
+  box-sizing: border-box;
+}
+
+/* 主布局使用CSS Grid */
+.main {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  gap: var(--gap-size);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-size);
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-size);
+  min-height: 0;
+}
+
+/* 画布容器响应式 */
+.canvasWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--border-radius) * 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
+/* 结果区域响应式 */
+.result {
+  background: #f8f9fa;
+  border-radius: calc(var(--border-radius) * 0.8);
+  padding: calc(var(--gap-size) * 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.guessText {
+  background: white;
+  border-radius: 8px;
+  padding: calc(var(--gap-size) * 0.8);
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0;
+  flex: 1;
+}
+
+/* 超宽屏幕适配 (1920px以上) */
+@media (min-width: 1920px) {
+  :root {
+    --sidebar-width: 280px;
+    --gap-size: 1.2rem;
+    --container-padding: 0.8rem;
+    --canvas-max-width: 1000px;
+    --canvas-max-height: 700px;
+  }
+}
+
+/* 大屏幕适配 (1440px - 1919px) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+  :root {
+    --sidebar-width: 260px;
+    --gap-size: 1.1rem;
+    --container-padding: 0.7rem;
+    --canvas-max-width: 900px;
+    --canvas-max-height: 650px;
+  }
+}
+
+/* 中等屏幕适配 (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  :root {
+    --sidebar-width: 240px;
+    --gap-size: 1rem;
+    --container-padding: 0.6rem;
+    --canvas-max-width: 800px;
+    --canvas-max-height: 600px;
+  }
+}
+
+/* 平板横屏适配 (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --sidebar-width: 220px;
+    --gap-size: 0.9rem;
+    --container-padding: 0.5rem;
+    --canvas-max-width: 700px;
+    --canvas-max-height: 500px;
+  }
+  
+  .main {
+    grid-template-columns: var(--sidebar-width) 1fr;
+  }
+}
+
+/* 手机横屏适配 (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  :root {
+    --container-padding: 0.2rem;
+    --gap-size: 0.5rem;
+  }
+  
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    padding: calc(var(--gap-size) * 0.8);
+  }
+  
+  .sidebar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: calc(var(--gap-size) * 0.5);
+  }
+  
+  .result {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 小型手机竖屏适配 (320px - 479px) */
+@media (max-width: 479px) {
+  :root {
+    --container-padding: 0.1rem;
+    --gap-size: 0.4rem;
+  }
+  
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    padding: calc(var(--gap-size) * 0.8);
+  }
+  
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gap-size) * 0.5);
+  }
+  
+  .toolGroup {
+    margin-bottom: calc(var(--gap-size) * 0.5);
+  }
+}
+
+/* 极小屏幕适配 (小于320px) */
+@media (max-width: 319px) {
+  :root {
+    --container-padding: 0.05rem;
+    --gap-size: 0.3rem;
+  }
+  
+  .title {
+    font-size: 1.2rem;
+  }
+  
+  .subtitle {
+    font-size: 0.6rem;
+  }
+  
+  .toolLabel {
+    font-size: 0.7rem;
+  }
+  
+  .toolModeButton {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  
+  .main {
+    padding: 0.3rem;
+    gap: 0.3rem;
+  }
+  
+  .sidebar {
+    padding: 0.3rem;
+    gap: 0.3rem;
+  }
+  
+  .toolGroup {
+    gap: 0.2rem;
+  }
+  
+  .toolLabel {
+    font-size: 0.75rem;
+  }
+  
+  .toolModeButton {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  
+  .brushSizeControl {
+    gap: 0.3rem;
+  }
+  
+  .brushSizeValue {
+    font-size: 0.75rem;
+    min-width: 25px;
+  }
+  
+  .canvas {
+    width: 100%;
+    height: auto;
+  }
+  
+  .button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  
+  .colorPresets {
+    gap: 0.2rem;
+  }
+  
+  .colorPreset {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .topicDisplay {
+    padding: 0.5rem;
+    min-width: 140px;
+  }
+  
+  .topicText {
+    font-size: 1rem;
+  }
+  
+  .guessText {
+    font-size: 0.9rem;
+    min-height: 2.5rem;
+  }
+}
+
+/* 动态画布尺寸适配 */
+@media (aspect-ratio: 16/9) {
+  .canvas {
+    max-width: 60vw;
+    max-height: 40vh;
+  }
+}
+
+@media (aspect-ratio: 4/3) {
+  .canvas {
+    max-width: 70vw;
+    max-height: 50vh;
+  }
+}
+
+@media (aspect-ratio: 3/2) {
+  .canvas {
+    max-width: 65vw;
+    max-height: 45vh;
+  }
+}
+
+@media (aspect-ratio: 1/1) {
+  .canvas {
+    max-width: 80vw;
+    max-height: 60vh;
+  }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .toolModeButton {
+    min-height: 44px;
+  }
+  
+  .colorPreset {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .brushSlider {
+    height: 8px;
+  }
+  
+  .brushSlider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}

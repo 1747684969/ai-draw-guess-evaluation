@@ -1,0 +1,7 @@
+{guess && (
+          <div className={styles.result}>
+            <h2 className={styles.resultTitle}>AI的猜测：</h2>
+            <p className={styles.guess}>{guess}</p>
+          </div>
+        )}
+      <

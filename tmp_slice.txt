@@ -1,0 +1,37 @@
+            >
+              🎲 换一个题目
+            </button>
+          </div>
+        )}
+
+        {/* 画笔工具 */}
+        <div className={styles.toolbar}>
+          <div className={styles.toolGroup}>
+            <label className={styles.toolLabel}>工具：</label>
+            <div className={styles.toolMode}>
+              <button
+                className={`${styles.toolModeButton} ${!isEraserMode ? styles.toolModeButtonActive : ''}`}
+                onClick={() => setIsEraserMode(false)}
+                title="画笔模式"
+              >
+                🖌️ 画笔
+              </button>
+              <button
+                className={`${styles.toolModeButton} ${isEraserMode ? styles.toolModeButtonActive : ''}`}
+                onClick={() => setIsEraserMode(true)}
+                title="橡皮擦模式"
+              >
+                🧹 橡皮擦
+              </button>
+            </div>
+          </div>
+          {!isEraserMode && (
+            <div className={styles.toolGroup}>
+              <label className={styles.toolLabel}>画笔颜色：</label>
+              <div className={styles.colorPicker}>
+                <input
+                  type="color"
+                  value={brushColor}
+                  onChange={(e) => setBrushColor(e.target.value)}
+                  className={styles.colorInput}
+                />

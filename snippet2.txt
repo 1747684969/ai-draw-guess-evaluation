@@ -1,0 +1,6 @@
+const base64Image = imageData.split(',')[1] || imageData;
+
+      // 检测API类型：OpenAI兼容格式（包含chat/completions）还是Gemini格式
+      const isOpenAIFormat = apiConfig.apiUrl.includes('chat/completions') || 
+                              apiConfig.apiUrl.includes('moonshot') ||
+                            

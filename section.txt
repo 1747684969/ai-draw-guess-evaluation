@@ -1,0 +1,89 @@
+const imageData = canvas.toDataURL('image/png');
+      const base64Image = imageData.split(',')[1] || imageData;
+
+      // 检测API类型：OpenAI兼容格式（包含chat/completions）还是Gemini格式
+      const isOpenAIFormat = apiConfig.apiUrl.includes('chat/completions') || 
+                              apiConfig.apiUrl.includes('moonshot') ||
+                              apiConfig.apiUrl.includes('openai');
+
+      let apiUrl: string;
+      let requestBody: any;
+      let headers: Record<string, string>;
+
+      if (isOpenAIFormat) {
+        // OpenAI兼容格式（如Moonshot、OpenAI等）
+        const baseUrl = apiConfig.apiUrl.replace(/\/$/, '');
+        
+        // 如果URL不包含完整的路径，添加chat/completions
+        if (baseUrl.includes('/chat/completions')) {
+          apiUrl = baseUrl;
+        } else {
+          // 确保URL格式正确
+          const cleanUrl = baseUrl.replace(/\/v1\/?$/, '').replace(/\/chat\/completions\/?$/, '');
+          apiUrl = `${cleanUrl}/v1/chat/completions`;
+        }
+
+        // OpenAI格式：API Key在Authorization header中
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiConfig.apiKey}`
+        };
+
+        // OpenAI格式的请求体
+        requestBody = {
+          model: apiConfig.modelName,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: '这张图片中画的是什么？请用中文简洁直接地回答，只回答是什么，不要额外解释。'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/png;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 100
+        };
+      } else {
+        // Gemini格式
+        const baseUrl = apiConfig.apiUrl.replace(/\/$/, '');
+        
+        if (baseUrl.includes('/v1/') || baseUrl.includes('/v1beta/')) {
+          // URL已经包含版本号
+          apiUrl = `${baseUrl}/${apiConfig.modelName}:generateContent?key=${apiConfig.apiKey}`;
+        } else {
+          // URL不包含版本号，添加v1beta版本
+          apiUrl = `${baseUrl}/v1beta/models/${apiConfig.modelName}:generateContent?key=${apiConfig.apiKey}`;
+        }
+
+        headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Gemini格式的请求体
+        requestBody = {
+          contents: [{
+            parts: [
+              {
+                text: "What is drawn in this image? Please describe it in Chinese, be concise and direct. Just answer what it is, no additional explanation."
+              },
+              {
+                inline_data: {
+                  mime_type: "image/png",
+                  data: base64Image
+                }
+              }
+            ]
+          }]
+        };
+      }
+
+      // 调用API
+      

@@ -1,0 +1,3 @@
+const base64Image = imageData.split(',')[1] || imageData;      // local model (if present)\r\n      let localResults = [];\r\n      try {\r\n        await loadModel();\r\n        localResults = await classifyCanvas(canvas, 3);\r\n      } catch (e) { }\r\n\r\n
+      // 检测API类型：OpenAI兼容格式（包含chat/completions）还是Gemini格式
+      const isOpenAIFormat = apiConfig.a

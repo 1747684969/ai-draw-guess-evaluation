@@ -1,0 +1,32 @@
+// Lightweight wrapper for TensorFlow.js MobileNet image classification
+import * as mobilenet from '@tensorflow-models/mobilenet';
+
+export type Classification = {
+  className: string;
+  probability: number;
+};
+
+let model: mobilenet.MobileNet | null = null;
+
+export async function loadModel(): Promise<void> {
+  if (model) return;
+  model = await mobilenet.load({ version: 2, alpha: 1.0 });
+}
+
+export async function classifyCanvas(canvas: HTMLCanvasElement, topK = 3): Promise<Classification[]> {
+  if (!model) await loadModel();
+  if (!model) throw new Error('model not loaded');
+
+  const predictions = await model.classify(canvas, topK);
+  return predictions.map(p => ({ className: p.className, probability: p.probability }));
+}
+
+// Simple comparator between local model results and a remote text result
+export function compareResults(local: Classification[], remote: string) {
+  return {
+    localTop: local[0]?.className || '',
+    remoteText: remote,
+    match: local.some(l => remote.includes(l.className)),
+  };
+}
+
