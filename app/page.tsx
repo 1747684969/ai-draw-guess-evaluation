@@ -26,6 +26,8 @@ export default function Home() {
   const [apiGuess, setApiGuess] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [aiEvaluation, setAiEvaluation] = useState<string>('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [brushColor, setBrushColor] = useState<string>('#000000');
   const [brushSize, setBrushSize] = useState<number>(5);
@@ -530,23 +532,301 @@ export default function Home() {
     return guess;
   }, [apiConfig, proxyFetch]);
 
+  // 使用Ollama模型评价（流式传输）
+  const evaluateWithOlla = useCallback(async (canvas: HTMLCanvasElement, onChunk: (chunk: string) => void) => {
+    const base64Image = canvas.toDataURL('image/png').split(',')[1];
+    const apiUrl = `${ollaConfig.apiUrl}/api/generate`;
+    const requestBody = {
+      model: ollaConfig.modelName,
+      prompt: "请评价这张画作的质量，给出1-10分的评分，并提供具体的改进建议。请用简洁明了的语言回答。",
+      images: [base64Image],
+      stream: true
+    };
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const response = await proxyFetch(
+        apiUrl,
+        { 'Content-Type': 'application/json' },
+        requestBody,
+        controller.signal
+      );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Olla API请求失败: ${errorData.error || '未知错误'}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+      
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data = JSON.parse(line);
+              if (data.response) {
+                fullText += data.response;
+                onChunk(data.response);
+              }
+            } catch (e) {
+              console.error('解析流式数据失败:', e);
+            }
+          }
+        }
+      }
+      
+      return fullText;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('请求超时，请检查网络连接');
+      }
+      throw error;
+    }
+  }, [ollaConfig, proxyFetch]);
+
+  // 使用API模型评价（流式传输）
+  const evaluateWithAPI = useCallback(async (canvas: HTMLCanvasElement, onChunk: (chunk: string) => void) => {
+    const base64Image = canvas.toDataURL('image/png').split(',')[1];
+    const isOllaFormat = apiConfig.apiUrl.includes('/api/generate');
+    const isOpenAIFormat = apiConfig.apiUrl.includes('/chat/completions') || 
+                          apiConfig.apiUrl.includes('/v1/chat/completions');
+    
+    let apiUrl = apiConfig.apiUrl;
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    let requestBody: any;
+    
+    if (isOllaFormat) {
+      apiUrl = `${apiConfig.apiUrl}/api/generate`;
+      requestBody = {
+        model: apiConfig.modelName,
+        prompt: "请评价这张画作的质量，给出1-10分的评分，并提供具体的改进建议。请用简洁明了的语言回答。",
+        images: [base64Image],
+        stream: true
+      };
+    } else if (isOpenAIFormat) {
+      if (!apiConfig.apiKey) {
+        throw new Error('使用OpenAI兼容API需要提供API Key');
+      }
+      
+      headers['Authorization'] = `Bearer ${apiConfig.apiKey}`;
+      
+      if (!apiUrl.includes('/chat/completions')) {
+        apiUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+      }
+      
+      requestBody = {
+        model: apiConfig.modelName,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "请评价这张画作的质量，给出1-10分的评分，并提供具体的改进建议。请用简洁明了的语言回答。"
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/png;base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.5,
+        stream: true
+      };
+    } else {
+      if (!apiConfig.apiKey) {
+        throw new Error('使用Gemini API需要提供API Key');
+      }
+      
+      if (!apiUrl.includes(':generateContent')) {
+        apiUrl = apiUrl.endsWith('/') ? `${apiUrl}${apiConfig.modelName}:generateContent` : `${apiUrl}/${apiConfig.modelName}:generateContent`;
+      }
+      
+      headers['x-goog-api-key'] = apiConfig.apiKey;
+      
+      requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: "请评价这张画作的质量，给出1-10分的评分，并提供具体的改进建议。请用简洁明了的语言回答。"
+              },
+              {
+                inline_data: {
+                  mime_type: "image/png",
+                  data: base64Image
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          topK: 32,
+          topP: 1,
+          maxOutputTokens: 1000,
+        }
+      };
+    }
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await proxyFetch(apiUrl, headers, requestBody, controller.signal);
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = await response.text();
+      }
+      const errorMsg = typeof errorData === 'string' 
+        ? errorData 
+        : errorData?.error?.message || errorData?.message || JSON.stringify(errorData);
+      throw new Error(`API请求失败: ${errorMsg}`);
+    }
+    
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('无法获取响应流');
+    }
+    
+    const decoder = new TextDecoder();
+    let fullText = '';
+    
+    if (isOllaFormat) {
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data = JSON.parse(line);
+              if (data.response) {
+                fullText += data.response;
+                onChunk(data.response);
+              }
+            } catch (e) {
+              console.error('解析流式数据失败:', e);
+            }
+          }
+        }
+      }
+    } else if (isOpenAIFormat) {
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.trim() && line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr === '[DONE]') continue;
+            
+            try {
+              const data = JSON.parse(dataStr);
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                fullText += content;
+                onChunk(content);
+              }
+            } catch (e) {
+              console.error('解析流式数据失败:', e);
+            }
+          }
+        }
+      }
+    } else {
+      const data = await response.json();
+      fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || '无法评价';
+      onChunk(fullText);
+    }
+    
+    return fullText;
+  }, [apiConfig, proxyFetch]);
+
   // 提交画作让AI猜测
   const submitDrawing = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     setIsLoading(true);
+    setIsEvaluating(true);
     setError('');
     setGuess('');
     setOllaGuess('');
     setApiGuess('');
+    setAiEvaluation('');
 
     try {
       if (operationMode === 'ollama') {
         // 仅使用Ollama模型
-        const result = await classifyWithOlla(canvas);
-        setOllaGuess(result);
-        setGuess(result);
+        const [result] = await Promise.allSettled([
+          classifyWithOlla(canvas)
+        ]);
+        
+        if (result.status === 'fulfilled') {
+          setOllaGuess(result.value);
+          setGuess(result.value);
+        } else {
+          setOllaGuess(`Ollama模型失败: ${result.reason}`);
+          setGuess(`Ollama模型失败: ${result.reason}`);
+        }
+        
+        // 流式评价
+        try {
+          await evaluateWithOlla(canvas, (chunk) => {
+            setAiEvaluation(prev => prev + chunk);
+          });
+        } catch (e) {
+          setAiEvaluation('评价失败');
+        }
         
         // 保存统计记录
         try {
@@ -555,17 +835,34 @@ export default function Home() {
             durationMs: 0,
             brushSize,
             brushColor,
-            result: result,
-            localResults: [{ label: result, prob: 1.0 }]
+            result: result.status === 'fulfilled' ? result.value : '失败',
+            localResults: [{ label: result.status === 'fulfilled' ? result.value : '失败', prob: 1.0 }]
           });
         } catch (e) {
           console.error('保存记录失败:', e);
         }
       } else if (operationMode === 'api') {
         // 仅使用API模型
-        const result = await classifyWithAPI(canvas);
-        setApiGuess(result);
-        setGuess(result);
+        const [result] = await Promise.allSettled([
+          classifyWithAPI(canvas)
+        ]);
+        
+        if (result.status === 'fulfilled') {
+          setApiGuess(result.value);
+          setGuess(result.value);
+        } else {
+          setApiGuess(`API模型失败: ${result.reason}`);
+          setGuess(`API模型失败: ${result.reason}`);
+        }
+        
+        // 流式评价
+        try {
+          await evaluateWithAPI(canvas, (chunk) => {
+            setAiEvaluation(prev => prev + chunk);
+          });
+        } catch (e) {
+          setAiEvaluation('评价失败');
+        }
         
         // 保存统计记录
         try {
@@ -574,7 +871,7 @@ export default function Home() {
             durationMs: 0,
             brushSize,
             brushColor,
-            result: result,
+            result: result.status === 'fulfilled' ? result.value : '失败',
             localResults: []
           });
         } catch (e) {
@@ -612,6 +909,15 @@ export default function Home() {
           : ollaResultText;
         setGuess(primaryResult);
         
+        // 流式评价（同时模式使用API评价）
+        try {
+          await evaluateWithAPI(canvas, (chunk) => {
+            setAiEvaluation(prev => prev + chunk);
+          });
+        } catch (e) {
+          setAiEvaluation('评价失败');
+        }
+        
         // 保存统计记录
         try {
           saveRecord({
@@ -635,8 +941,9 @@ export default function Home() {
       console.error('Error submitting drawing:', err);
     } finally {
       setIsLoading(false);
+      setIsEvaluating(false);
     }
-  }, [operationMode, classifyWithOlla, classifyWithAPI, brushSize, brushColor]);
+  }, [operationMode, classifyWithOlla, classifyWithAPI, evaluateWithOlla, evaluateWithAPI, brushSize, brushColor]);
 
   return (
     <div className={styles.container}>
@@ -775,6 +1082,25 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* AI评价显示 */}
+          <div className={styles.evaluation}>
+            <h3 className={styles.evaluationTitle}>
+              🤖 AI评价
+            </h3>
+            <div className={`${styles.evaluationContent} ${isEvaluating && !aiEvaluation ? styles.evaluationLoading : ''}`}>
+              {isEvaluating && !aiEvaluation ? (
+                <p className={styles.placeholderText}>正在评价中...</p>
+              ) : aiEvaluation ? (
+                <p>
+                  {aiEvaluation}
+                  {isEvaluating && <span className={styles.cursor}>|</span>}
+                </p>
+              ) : (
+                <p className={styles.placeholderText}>提交画作后显示AI评价</p>
+              )}
+            </div>
           </div>
 
         </div>
